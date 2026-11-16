@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Booléen Poste</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single centred tool column — input on top, boolean string as the hero output, chips to fine-tune below */
+:root{
+  --bg:#f5f7fb; --surface:#ffffff; --fg:#141a2b; --muted:#5d6680; --line:#dde2ee;
+  --accent:#2453d6; --accent-soft:#e6ecfc; --op:#b4421f; --ok:#1d7a4c;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1320; --surface:#171c2c; --fg:#e7ebf5; --muted:#98a1ba; --line:#2a3249;
+  --accent:#7d9dff; --accent-soft:#1f2a4a; --op:#ff9b74; --ok:#5fd39a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1320; --surface:#171c2c; --fg:#e7ebf5; --muted:#98a1ba; --line:#2a3249;
+  --accent:#7d9dff; --accent-soft:#1f2a4a; --op:#ff9b74; --ok:#5fd39a; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-block:40px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:24px}
+h1{font-family:var(--display);font-size:clamp(26px,5vw,36px);line-height:1.15;margin:0;text-wrap:balance}
+.lead{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.lead code{font-family:var(--mono);font-size:13px;color:var(--fg)}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input[type=text]{flex:1 1 260px;min-width:0;font:500 17px var(--body);padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+button{font:600 15px var(--body);border-radius:10px;cursor:pointer;border:1.5px solid transparent}
+button:focus-visible{outline:3px solid var(--accent-soft);outline-offset:2px}
+.go{background:var(--accent);color:#fff;padding:12px 22px}
+.examples{display:flex;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted);align-items:center}
+.examples button{font:500 13px var(--body);background:transparent;border-color:var(--line);color:var(--fg);padding:4px 10px;border-radius:999px}
+.out{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px}
+.outhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.label{font:600 12px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.meta{font:500 12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.meta.warn{color:var(--op)}
+pre{margin:0;font:400 14px/1.7 var(--mono);white-space:pre-wrap;word-break:break-word;background:var(--bg);border-radius:10px;padding:14px;max-height:320px;overflow:auto}
+pre .op{color:var(--op);font-weight:500}
+.copy{background:var(--fg);color:var(--bg);padding:8px 16px}
+.copy.done{background:var(--ok);color:#fff}
+.opts{display:flex;gap:16px;flex-wrap:wrap;font-size:14px}
+.opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 13px var(--body);padding:5px 10px;border-radius:999px;background:var(--accent-soft);color:var(--fg);border-color:var(--accent-soft)}
+.chip.off{background:transparent;border-color:var(--line);color:var(--muted);text-decoration:line-through}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.empty{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Un intitulé de poste, une recherche booléenne complète</h1>
+    <p class="lead">Tapez un poste en français. L'outil le décline en synonymes FR/EN et acronymes, prêts à coller dans le champ « Intitulé de poste » de LinkedIn Sales Navigator. Ex : <code>directeur marketing</code> → <code>"head of marketing" OR "CMO" OR …</code></p>
+  </header>
+
+  <form id="f">
+    <input type="text" id="q" value="directeur marketing" placeholder="ex : responsable RH, DAF, chef de produit…" autocomplete="off" aria-label="Intitulé de poste">
+    <button class="go" type="submit">Générer</button>
+  </form>
+  <div class="examples" id="ex"><span>Essayer :</span></div>
+
+  <section class="out" aria-live="polite">
+    <div class="outhead">
+      <span class="label">Requête Sales Navigator</span>
+      <span class="meta" id="count"></span>
+      <button class="copy" id="copy" type="button">Copier</button>
+    </div>
+    <pre id="res"></pre>
+    <div class="opts">
+      <label><input type="checkbox" id="optEn" checked> Inclure l'anglais</label>
+      <label><input type="checkbox" id="optAcr" checked> Acronymes</label>
+      <label><input type="checkbox" id="optNot" checked> Exclure assistants / stagiaires</label>
+    </div>
+    <div>
+      <p class="hint">Cliquez sur un terme pour l'exclure ou le réactiver.</p>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ---- Dictionnaire ----
+// Chaque fonction : mots-clés de détection, noms FR/EN, acronymes par niveau.
+const FUNCS = {
+  marketing:{k:["marketing","mkt"],fr:["marketing"],en:["marketing"],acr:{top:["CMO","DMK"]}},
+  commercial:{k:["commercial","commerciale","ventes","vente","sales","business development","développement commercial","developpement commercial"],fr:["commercial","ventes","développement commercial"],en:["sales","business development"],acr:{top:["CSO","CRO","DCO"]}},
+  finance:{k:["financier","financière","financiere","finance","finances","daf","comptable","comptabilité","comptabilite"],fr:["financier","finance","administratif et financier"],en:["finance"],acr:{top:["CFO","DAF"]},extraTop:["finance director","financial controller"]},
+  rh:{k:["rh","ressources humaines","drh","hr","people","talent","recrutement"],fr:["ressources humaines","RH","people"],en:["human resources","HR","people","talent"],acr:{top:["CHRO","DRH","CPO"]}},
+  it:{k:["informatique","si","dsi","systèmes d'information","systemes d'information","it"],fr:["informatique","systèmes d'information","SI"],en:["IT","information technology","information systems"],acr:{top:["CIO","DSI"]}},
+  tech:{k:["technique","technologie","tech","cto","engineering","ingénierie","ingenierie"],fr:["technique","technologie"],en:["engineering","technology"],acr:{top:["CTO","VPE"]}},
+  produit:{k:["produit","product","cpo"],fr:["produit"],en:["product"],acr:{top:["CPO"]},extraMid:["product manager","product owner"]},
+  communication:{k:["communication","com","comm"],fr:["communication"],en:["communications","corporate communications"],acr:{top:["CCO","DIRCOM"]}},
+  achats:{k:["achats","achat","procurement","purchasing","acheteur"],fr:["achats"],en:["procurement","purchasing"],acr:{top:["CPO"]}},
+  juridique:{k:["juridique","juriste","legal","droit"],fr:["juridique"],en:["legal"],acr:{top:["General Counsel"]},extraTop:["general counsel","legal director"]},
+  operations:{k:["opérations","operations","opération","exploitation","ops","coo"],fr:["opérations","exploitation"],en:["operations"],acr:{top:["COO"]}},
+  supply:{k:["supply chain","logistique","supply","logistics"],fr:["supply chain","logistique"],en:["supply chain","logistics"],acr:{}},
+  data:{k:["data","données","donnees","bi","analytics","cdo"],fr:["data","données"],en:["data","analytics","business intelligence"],acr:{top:["CDO"]}},
+  digital:{k:["digital","numérique","numerique","transformation digitale","e-commerce","ecommerce"],fr:["digital","numérique","e-commerce"],en:["digital","e-commerce","ecommerce"],acr:{top:["CDO"]}},
+  client:{k:["client","clients","service client","customer success","relation client","customer"],fr:["relation client","service client","expérience client"],en:["customer success","customer experience","customer service"],acr:{top:["CCO"]}},
+  qualite:{k:["qualité","qualite","quality","qhse"],fr:["qualité","QHSE"],en:["quality","QHSE"],acr:{}},
+  rd:{k:["r&d","recherche","innovation","research"],fr:["R&D","recherche et développement","innovation"],en:["R&D","research and development","innovation"],acr:{}},
+  general:{k:["général","general","générale","generale","dg","ceo","pdg","gérant","gerant","fondateur","founder","président","president"],fr:[],en:[],acr:{},
+    special:{fr:["directeur général","directrice générale","PDG","président","présidente","gérant","gérante","fondateur","fondatrice","co-fondateur","co-fondatrice"],en:["CEO","chief executive officer","managing director","founder","co-founder","president","owner"],acr:["DG","CEO","PDG"]}}
+};
+const CHIEF = {marketing:"chief marketing officer",commercial:"chief sales officer",finance:"chief financial officer",rh:"chief human resources officer",it:"chief information officer",tech:"chief technology officer",produit:"chief product officer",communication:"chief communications officer",operations:"chief operating officer",data:"chief data officer",digital:"chief digital officer",client:"chief customer officer"};
+
+// Niveaux de séniorité
+const LEVELS = {
+  top:{k:["directeur","directrice","director","dir","vp","vice president","vice-président","head","chief","c-level"],fr:["directeur","directrice"],en:["head of","director of","VP","vice president"]},
+  mid:{k:["responsable","manager","chef","lead","leader","team lead"],fr:["responsable","chef","manager"],en:["manager","lead","head of"]},
+  ic:{k:["chargé","chargée","charge","chargé de","spécialiste","specialiste","specialist","analyste","analyst","consultant","ingénieur","ingenieur","engineer","chargée de"],fr:["chargé","chargée","spécialiste","analyste"],en:["specialist","analyst","executive","officer"]}
+};
+const EXCLUDE = ["assistant","assistante","stagiaire","intern","alternant","alternante","apprenti","apprentie","stage"];
+
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();
+
+function detect(q){
+  const n = " "+norm(q)+" ";
+  let func=null, best=0;
+  for(const [id,f] of Object.entries(FUNCS)){
+    for(const k of f.k){ const kk=norm(k); const re=new RegExp("(^|[^a-z])"+kk.replace(/[.*+?^${}()|[\]\\&]/g,"\\$&")+"([^a-z]|$)");
+      if(re.test(n) && kk.length>best){best=kk.length;func=id;} }
+  }
+  // acronymes seuls = niveau top
+  const acrMap={daf:"top",drh:"top",dsi:"top",cto:"top",cmo:"top",cfo:"top",coo:"top",cpo:"top",cdo:"top",dg:"top",ceo:"top",pdg:"top"};
+  let level=null;
+  for(const [id,l] of Object.entries(LEVELS)) for(const k of l.k){ if(new RegExp("(^|[^a-z])"+norm(k)+"([^a-z]|$)").test(n)){ level=level||id; } }
+  for(const [a,l] of Object.entries(acrMap)) if(new RegExp("(^|[^a-z])"+a+"([^a-z]|$)").test(n)) level=level||l;
+  return {func, level: level||"top"};
+}
+
+const de = w => /^[aeiouyhé]/i.test(w) ? "d'"+w : "de "+w;
+const feminine = {"financier":"financière","commercial":"commerciale","technique":"technique","juridique":"juridique","informatique":"informatique"};
+
+function build(q, opt){
+  const {func, level} = detect(q);
+  const terms = new Set([q.trim()]);
+  if(!func){ return {terms:[...terms], func, level}; }
+  const f = FUNCS[func];
+  if(f.special){
+    f.special.fr.forEach(t=>terms.add(t));
+    if(opt.en) f.special.en.forEach(t=>terms.add(t));
+    if(opt.acr) f.special.acr.forEach(t=>terms.add(t));
+    return {terms:[...terms], func, level};
+  }
+  const L = LEVELS[level];
+  // Français : « directeur marketing », « directeur du marketing », « directrice commerciale »…
+  for(const lv of L.fr){
+    for(const d of f.fr){
+      const adj = feminine[d];
+      if(adj && /rice$|ée$|e$/.test(lv) && lv!=="responsable" && lv!=="chef" && lv!=="manager" && lv!=="analyste" && lv!=="spécialiste") terms.add(lv+" "+adj);
+      else terms.add(lv+" "+d);
+      if(level==="ic" && /^charg/.test(lv)) { terms.delete(lv+" "+d); terms.add(lv+" "+de(d)); }
+    }
+  }
+  if(opt.en){
+    for(const lv of L.en) for(const d of f.en){
+      terms.add(/of$/.test(lv) ? lv+" "+d : (lv==="VP"||lv==="vice president") ? lv+" "+d : d+" "+lv);
+    }
+    if(level==="top" && CHIEF[func]) terms.add(CHIEF[func]);
+    (level==="top"? f.extraTop: level==="mid"? f.extraMid: null)?.forEach(t=>terms.add(t));
+  }
+  if(opt.acr && level==="top" && f.acr.top) f.acr.top.forEach(t=>terms.add(t));
+  return {terms:[...terms], func, level};
+}
+
+// ---- UI ----
+const $=id=>document.getElementById(id);
+let disabled=new Set(), current=[];
+const opts=()=>({en:$("optEn").checked, acr:$("optAcr").checked, not:$("optNot").checked});
+
+function render(){
+  const o=opts(); const r=build($("q").value,o); current=r.terms;
+  const active=current.filter(t=>!disabled.has(t.toLowerCase()));
+  const quote=t=>'"'+t.replace(/"/g,"")+'"';
+  let s = active.map(quote).join(" OR ");
+  if(active.length>1) s="("+s+")";
+  if(o.not && active.length && r.func!=="general") s+=" "+EXCLUDE.map(e=>"NOT "+quote(e)).join(" ");
+  const res=$("res"); res.innerHTML="";
+  if(!$("q").value.trim()){ res.innerHTML='<span class="empty">Tapez un intitulé de poste.</span>'; }
+  else s.split(/( OR | NOT |\(|\))/).forEach(part=>{
+    if(!part) return;
+    if(/^( OR | NOT |\(|\))$/.test(part)){ const sp=document.createElement("span"); sp.className="op"; sp.textContent=part; res.append(sp); }
+    else res.append(document.createTextNode(part));
+  });
+  res.dataset.raw=s;
+  const c=$("count"); c.textContent=s.length+" caractères · "+active.length+" termes"+(r.func?"":" · poste non reconnu");
+  c.classList.toggle("warn", s.length>1500 || !r.func);
+  const chips=$("chips"); chips.innerHTML="";
+  current.forEach(t=>{ const b=document.createElement("button"); b.type="button"; b.className="chip"+(disabled.has(t.toLowerCase())?" off":""); b.textContent=t;
+    b.onclick=()=>{ const k=t.toLowerCase(); disabled.has(k)?disabled.delete(k):disabled.add(k); render(); }; chips.append(b); });
+}
+
+$("f").addEventListener("submit",e=>{e.preventDefault(); disabled.clear(); render();});
+$("q").addEventListener("input",()=>{disabled.clear(); render();});
+["optEn","optAcr","optNot"].forEach(id=>$(id).addEventListener("change",render));
+$("copy").addEventListener("click",async()=>{
+  const btn=$("copy"), txt=$("res").dataset.raw||"";
+  try{ await navigator.clipboard.writeText(txt); btn.textContent="Copié"; btn.classList.add("done"); }
+  catch{ const r=document.createRange(); r.selectNodeContents($("res")); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); btn.textContent="Texte sélectionné"; }
+  setTimeout(()=>{btn.textContent="Copier"; btn.classList.remove("done");},1600);
+});
+["directeur marketing","responsable RH","DAF","chef de produit","chargé de communication","directeur commercial","DSI","CEO"].forEach(x=>{
+  const b=document.createElement("button"); b.type="button"; b.textContent=x; b.onclick=()=>{$("q").value=x; disabled.clear(); render();}; $("ex").append(b);
+});
+render();
+</script>
+</body>
+</html>
